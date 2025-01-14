@@ -3,12 +3,21 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Command
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 API_TOKEN = ''
 
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
+
+kb = ReplyKeyboardMarkup(resize_keyboard=True)
+button = KeyboardButton(text='Расчитать')
+button2 = KeyboardButton(text='Информация')
+
+kb.add(button)
+kb.add(button2)
+
 
 
 class UserState(StatesGroup):
@@ -20,13 +29,14 @@ class UserState(StatesGroup):
 
 @dp.message_handler(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer("Введите 'Calories' для начала расчета нормы калорий.")
+    await message.answer("Введите 'Расчитать' для начала расчета нормы калорий.", reply_markup=kb)
 
 
-@dp.message_handler(lambda message: message.text == "Calories")
+@dp.message_handler(lambda message: message.text == "Расчитать")
 async def set_gender(message: types.Message):
     await message.answer("Введите ваш пол (мужчина/женщина):")
     await UserState.gender.set()
+
 
 
 @dp.message_handler(state=UserState.gender)
@@ -73,10 +83,14 @@ async def send_calories(message: types.Message, state: FSMContext):
     await state.finish()
 
 
-@dp.message_handler(lambda message: message.text.lower() != "calories", state="*")
+@dp.message_handler(lambda message: message.text.lower() != "расчитать", state="*")
 async def handle_invalid_input(message: types.Message):
-    await message.answer("Пожалуйста, введите команду /start для начала или 'Calories' для расчета нормы калорий.")
+    await message.answer("Пожалуйста, введите команду /start для начала или 'Расчитать' для расчета нормы калорий.")
 
+@dp.message_handler(state="*")
+async def debug_state(message: types.Message, state: FSMContext):
+    current_state = await state.get_state()
+    await message.answer(f"Текущее состояние: {current_state}")
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
